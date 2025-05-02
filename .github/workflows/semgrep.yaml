@@ -11,6 +11,8 @@ permissions:
   security-events: write #보안 경고 업로드 권한
   contents: read #코드 읽기 기본 권한
 
+#깃허브 액션에서 sarif 파일(보안 분석 결과)를 github 보안탭(Code scanning alerts)에 업로드할 수 있도록 허용하는 권한임
+#SARIF 업로드 같은 보안 관련 작업은 명시적으로 허용해줘야한다.
 
 jobs:
   semgrep:

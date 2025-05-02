@@ -1,0 +1,53 @@
+name: Build, Scan, and Push Docker Image with Trivy
+
+on:
+  push:
+    branches: [ main ] #main 브랜치로 push 될 때 실행된다.
+  pull_request:
+    branches: [ main ] #main 브랜치 대상 pr이 생성되거나 변경될 때 실행된다. 
+  workflow_dispatch: #수동 실행 트리거
+
+#워크플로우가 사용하는 권한 설정
+#Trivy는 Github 리소스를 직접 수정하지 않으므로 기본 read 권한만 설정한다.
+permissions:
+  security-events: write #SARIF 파일 업로드 위한 보안 권한임
+  contents: read #깃허브 코드 읽을 수 있도록 함
+
+env:
+  IMAGE_TAG: ${{ github.sha }} #커밋 해시 기반 태그
+
+jobs:
+  build-and-scan:
+    name:  Docker Build & Trivy scan, and Docker Hub Push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Docker build
+        run: docker build -t jshwj/nextjs-test-new:${{ env.IMAGE_TAG }} .
+      
+        #Trivy 보안 취약점 스캔
+      - name: Scan Docker Image With Trivy
+        uses: aquasecurity/trivy-action@master #Trivy를 Github Actions에서 쉽게 실행할 수 있도록 해주는 공식 액션을 의미한다.
+        #Aqua Security가 만든 trivy-action을 가져와서 실행하는데 master 브랜치 기준 최신 코드로 사용하겠다.
+        with:
+          image-ref: 'jshwj/nextjs-test-new:${{ env.IMAGE_TAG }}' #검사 대상: 방금 빌드한 이미지
+          format: 'sarif' # SARIF 포맷을 쓰겠다.
+          output: 'trivy-results.sarif' # 결과 저장 파일명
+          ignore-unfixed: true # 아직 패치되지 않은 취약점은 무시한다.
+          vuln-type: 'os,library' # OS 취약점 + 애플리케이션 라이브러리까지 모두 검사한다.
+          exit-code: '0' # 취약점이 있어도 워크플로우 실패하지 않도록 설정한다.
+        
+      # SARIF 파일을 Github Security > Code scanning alerts 탭에 업로드한다.
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif #해당 파일을 대상으로 업로드한다.
+
+      - name: Docker Login
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Push Docker image with SHA tag
+        run: docker push jshwj/nextjs-test-new:${{ env.IMAGE_TAG }} 

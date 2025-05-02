@@ -5,7 +5,12 @@ on:
     branches: [ main ] #main 브랜치로 push 될 때 실행된다.
   pull_request:
     branches: [ main ] #main 브랜치 대상 pr이 생성되거나 변경될 때 실행된다. 
-  workflow_dispatch: #수동 실행 트리거거
+  workflow_dispatch: #수동 실행 트리거
+
+permissions:
+  security-events: write #보안 경고 업로드 권한
+  contents: read #코드 읽기 기본 권한
+
 
 jobs:
   semgrep:

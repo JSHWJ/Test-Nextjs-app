@@ -17,9 +17,6 @@ COPY . .
 #Next.js 앱을 프로덕션용으로 빌드한다.
 RUN npm run build
 
-# node 유저로 권한 전환, 실행을 비루트 유저로 한다.
-USER node
-
 #3000 포트를 컨테이너 외부와 연결
 EXPOSE 3000
 
